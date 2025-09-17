@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Simple Slots</title>
+  <style>
+    body { font-family: Arial, sans-serif; text-align: center; background: #222; color: #fff; }
+    #slots { font-size: 60px; margin: 20px; }
+    button, input { font-size: 20px; padding: 10px 20px; margin: 5px; }
+    #balance { margin-top: 10px; font-size: 24px; }
+    #bet { width: 100px; text-align: center; }
+    #message { margin-top: 15px; font-size: 22px; font-weight: bold; }
+  </style>
+</head>
+<body>
+  <h1>Simple Slot Machine</h1>
+  <div id="slots">❔ ❔ ❔</div>
+
+  <div>
+    <input type="number" id="bet" value="10" min="1" />
+    <button onclick="doubleBet()">2x</button>
+    <button onclick="allIn()">All In</button>
+  </div>
+
+  <button onclick="spin()">Spin</button>
+  <button onclick="resetBalance()">Reset Balance</button>
+  <div id="balance">Balance: 100</div>
+  <div id="message"></div>
+
+  <script>
+    let balance = 100;
+    const symbols = ["🍒","🍋","🔔","💎","⭐","7️⃣"];
+    let spinning = false;
+
+    // Load saved balance + bet
+    if (localStorage.getItem("slotBalance")) {
+      balance = parseInt(localStorage.getItem("slotBalance"));
+    }
+    if (localStorage.getItem("slotBet")) {
+      document.getElementById("bet").value = localStorage.getItem("slotBet");
+    }
+
+    function spin() {
+      if (spinning) return; // prevent spam
+      let bet = Number(document.getElementById("bet").value);
+      if (bet <= 0 || bet > balance) {
+        showMessage("⚠️ Invalid bet!");
+        return;
+      }
+
+      balance -= bet; // place bet
+      updateUI();
+      spinning = true;
+
+      let spinCount = 0;
+      let interval = 80; // start fast
+      let spinInterval = setInterval(() => {
+        let temp = [];
+        for (let i = 0; i < 3; i++) {
+          temp.push(symbols[Math.floor(Math.random() * symbols.length)]);
+        }
+        document.getElementById("slots").textContent = temp.join(" ");
+        spinCount++;
+        interval += 15; // slow down gradually
+        if (spinCount > 15) { // stop after ~1.5s
+          clearInterval(spinInterval);
+          setTimeout(() => finishSpin(bet), 200);
+        }
+      }, interval);
+    }
+
+    function finishSpin(bet) {
+      // final result
+      let result = [];
+      for (let i = 0; i < 3; i++) {
+        let s = symbols[Math.floor(Math.random() * symbols.length)];
+        result.push(s);
+      }
+      document.getElementById("slots").textContent = result.join(" ");
+
+      // check win conditions
+      if (result[0] === result[1] && result[1] === result[2]) {
+        let win = bet * 10; // jackpot
+        balance += win;
+        showMessage("🎉 JACKPOT! You win " + win);
+      } else if (result[0] === result[1] || result[1] === result[2] || result[0] === result[2]) {
+        let win = Math.floor(bet * 2.5);
+        balance += win;
+        showMessage("✅ Two of a kind! You win " + win);
+      } else {
+        showMessage("❌ You lost " + bet);
+      }
+
+      updateUI();
+      spinning = false;
+    }
+
+    function doubleBet() {
+      let bet = Number(document.getElementById("bet").value);
+      bet *= 2;
+      if (bet > balance) bet = balance;
+      document.getElementById("bet").value = bet;
+      saveGame();
+    }
+
+    function allIn() {
+      document.getElementById("bet").value = balance;
+      saveGame();
+    }
+
+    function resetBalance() {
+      balance = 100; // reset to 100
+      updateUI();
+      showMessage("🔄 Balance reset to 100");
+    }
+
+    function updateUI() {
+      document.getElementById("balance").textContent = "Balance: " + balance;
+      saveGame();
+    }
+
+    function showMessage(msg) {
+      document.getElementById("message").textContent = msg;
+    }
+
+    function saveGame() {
+      localStorage.setItem("slotBalance", balance);
+      localStorage.setItem("slotBet", document.getElementById("bet").value);
+    }
+
+    updateUI();
+  </script>
+</body>
+</html>
